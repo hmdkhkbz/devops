@@ -1,0 +1,16 @@
+
+ingress_nginx_repo_name: "ingress-nginx"
+ingress_nginx_chart_url: "https://kubernetes.github.io/ingress-nginx"
+
+ingress_nginx_namespace: "ingress-nginx"
+ingress_nginx_release_name: "ingress-nginx"
+ingress_nginx_chart_name: "{{ ingress_nginx_repo_name }}/{{ ingress_nginx_release_name }}"
+
+ingress_nginx_values:
+  controller:
+    hostNetwork: true
+    hostPort: 
+      enabled: true
+    service:
+      type: ClusterIP
+    kind: DaemonSet

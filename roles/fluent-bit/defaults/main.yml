@@ -1,0 +1,8 @@
+---
+# defaults file for fluent_bit_helm
+helm_release_name: "fluent-bit"
+helm_namespace: "fluent-bit"
+helm_chart: "fluent/fluent-bit"
+values_file: "./values.yaml"  # Local path or remote URL for values.yaml
+elasticsearch_host: "5.34.202.235"
+elasticsearch_port: "9200"

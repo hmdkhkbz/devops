@@ -1,0 +1,18 @@
+---
+
+- name: helm repo add
+  when:
+    - ingress_nginx__helm_repo_installed.status is not defined
+  kubernetes.core.helm_repository:
+    name: "{{ ingress_nginx_repo_name }}"
+    repo_url: "{{ ingress_nginx_chart_url }}"
+  run_once: true
+
+- name: Install nginx ingress chart
+  kubernetes.core.helm:
+    name: "{{ ingress_nginx_release_name }}"
+    chart_ref: "{{ ingress_nginx_chart_name }}"
+    release_namespace: "{{ ingress_nginx_namespace }}"
+    create_namespace: true
+    update_repo_cache: true
+    values: "{{ ingress_nginx_values }}" 

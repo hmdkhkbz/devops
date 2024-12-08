@@ -1,0 +1,8 @@
+---
+k8s_version: "1.31"
+dns_domain: "mycluster.local"
+populate_inventory_to_hosts_file: true
+populate_loadbalancer_apiserver_to_hosts_file: false
+#apiserver_loadbalancer_domain_name: "k8s-api.mycluster.local"
+#loadbalancer_apiserver:
+#  address: "192.168.1.100"

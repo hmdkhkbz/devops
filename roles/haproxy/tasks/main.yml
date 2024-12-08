@@ -1,0 +1,116 @@
+---
+- name: Gather facts for HAProxy configuration
+  ansible.builtin.setup:
+
+- name: Install base packages
+  apt:
+    update_cache: yes
+    name:
+      - net-tools
+      - iproute2
+      - vim
+      - wget
+      - curl
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - python3-pip
+      - socat
+      - iptables
+      - jq
+      - resolvconf
+      - tcpdump
+      - bash-completion
+    state: present
+
+- name: Configure resolvconf
+  block:
+    - name: Set resolvconf head
+      copy:
+        dest: /etc/resolvconf/resolv.conf.d/head
+        content: |
+          nameserver {{ name_server1 }}
+          nameserver {{ name_server2 }}
+      notify:
+        - Reload resolvconf
+
+    - name: Ensure resolvconf service is running
+      systemd:
+        name: resolvconf
+        state: started
+        enabled: yes
+
+- name: Replace /etc/resolv.conf with a symlink
+  block:
+    - name: Remove existing /etc/resolv.conf
+      file:
+        path: /etc/resolv.conf
+        state: absent
+
+    - name: Create symbolic link for /etc/resolv.conf
+      file:
+        src: ../etc/resolvconf/resolv.conf.d/head
+        dest: /etc/resolv.conf
+        state: link
+        owner: root
+        group: root
+        mode: '0644'
+
+- name: create keyring direcrtory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+
+- name: add docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    keyring: /etc/apt/keyrings/docker.gpg
+
+- name: add the repository
+  apt_repository:
+    repo: deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu   jammy stable
+    state: present
+
+- name: update repository
+  apt:
+    update_cache: yes
+
+- name: install docker
+  apt:
+    pkg:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - docker-buildx-plugin
+    - docker-compose-plugin
+
+- name: pull haproxy latest image
+  docker_image:
+    name: docker.io/haproxy:latest
+    source: pull
+
+- name: create a directory for haproxy config
+  file:
+    path: /etc/haproxy/
+    state: directory
+
+- name: create the haproxy.cfg file from template
+  template:
+    src: templates/haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+  notify:
+  - restart haproxy container
+
+- name: run the haproxy container
+  docker_container:
+    name: haproxy
+    image: docker.io/haproxy:latest
+    state: started
+    restart_policy: always
+    ports:
+      - '6443:6443'
+      - '80:80'
+      - '443:443'
+    volumes:
+      - /etc/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg

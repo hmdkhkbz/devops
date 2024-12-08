@@ -1,0 +1,16 @@
+# CRI-O configuration file
+[crio]
+log_level = "{{ crio_log_level }}"
+root = "{{ crio_root }}"
+runroot = "{{ crio_runroot }}"
+storage_driver = "{{ crio_storage_driver }}"
+storage_option = {{ crio_storage_option }}
+
+[crio.runtime]
+default_runtime = "{{ crio_default_runtime }}"
+container_exits_dir = "{{ crio_container_exits_dir }}"
+container_attach_socket_dir = "{{ crio_container_attach_socket_dir }}"
+
+[crio.network]
+network_dir = "{{ crio_network_dir }}"
+plugin_dirs = {{ crio_plugin_dirs }}

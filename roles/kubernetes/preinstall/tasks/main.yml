@@ -1,0 +1,94 @@
+---
+- name: Ensure the system is Debian-based
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "Debian"
+    msg: "This role only supports Debian-based systems (Debian, Ubuntu)."
+
+- name: Ensure /etc/apt/keyrings exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  when: ansible_os_family == "Debian"
+
+- name: Add Kubernetes APT repository key
+  apt_key:
+    url: "{{ item.url }}"
+    keyring: "{{ item.keyring }}"
+  with_items:
+    - { url: 'https://pkgs.k8s.io/core:/stable:/{{k8s_version}}/deb/Release.key', keyring: '/etc/apt/keyrings/kubernetes-apt-keyring.gpg' }
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Add Kubernetes APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ k8s_version }}/deb/ /"
+    state: present
+  become: true
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+  when: ansible_os_family == "Debian"
+
+- name: Install Kubernetes packages
+  ansible.builtin.apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    install_recommends: no
+  become: true
+  when: ansible_os_family == "Debian"
+
+- name: Hold the packages to prevent accidental updates
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  with_items:
+    - kubelet
+    - kubectl
+    - kubeadm
+  when: ansible_os_family == "Debian"
+
+- name: Hosts | create hosts list from inventory on all nodes
+  set_fact:
+    etc_hosts_inventory_block: |-
+      {% for item in groups['k8s_cluster'] | unique -%}
+      {% if 'access_ip' in hostvars[item] or 'ip' in hostvars[item] or 'ansible_default_ipv4' in hostvars[item] -%}
+      {{ hostvars[item]['access_ip'] | default(hostvars[item]['ip'] | default(hostvars[item]['ansible_default_ipv4']['address'])) }}
+      {%- if ('ansible_hostname' in hostvars[item] and item != hostvars[item]['ansible_hostname']) %} {{ hostvars[item]['ansible_hostname'] }}.{{ dns_domain }} {{ hostvars[item]['ansible_hostname'] }} {% else %} {{ item }}.{{ dns_domain }} {{ item }} {% endif %}
+
+      {% endif %}
+      {% endfor %}
+
+- name: Hosts | populate inventory into hosts file on all nodes
+  blockinfile:
+    path: /etc/hosts
+    block: "{{ etc_hosts_inventory_block }}"
+    state: "{{ 'present' if populate_inventory_to_hosts_file else 'absent' }}"
+    create: true
+    backup: true
+    unsafe_writes: true
+    marker: "# Ansible inventory hosts {mark}"
+    mode: "0644"
+
+- name: Hosts | populate kubernetes loadbalancer address into hosts file
+  lineinfile:
+    dest: /etc/hosts
+    regexp: ".*{{ apiserver_loadbalancer_domain_name }}$"
+    line: "{{ loadbalancer_apiserver.address }} {{ apiserver_loadbalancer_domain_name }}"
+    state: present
+    backup: true
+    unsafe_writes: true
+  when:
+    - populate_loadbalancer_apiserver_to_hosts_file
+    - loadbalancer_apiserver is defined
+    - loadbalancer_apiserver.address is defined
+
+- name: Update facts
+  setup:
+    gather_subset: min

@@ -1,0 +1,8 @@
+ceph_csi_namespace: "rook-ceph"
+ceph_csi_chart_url: "https://ceph.github.io/csi-charts"
+ceph_csi_repo_name: "ceph-csi"
+ceph_csi_release_name: "ceph-csi-rbd"
+ceph_csi_chart_name: "{{ ceph_csi_repo_name }}/{{ ceph_csi_release_name }}"
+
+
+# ceph_csi_desired_values:

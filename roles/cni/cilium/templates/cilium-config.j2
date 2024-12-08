@@ -1,0 +1,101 @@
+---
+kubeProxyReplacement: {{ cilium_kube_proxy_replacement | bool | lower }}
+{% if cilium_kube_proxy_healthz_address %}
+kubeProxyReplacementHealthzBindAddr: "{{ cilium_kube_proxy_healthz_address }}"
+{% endif %}
+
+{% if cilium_operator_configuration %}
+operator:
+  {{ cilium_operator_configuration | to_nice_yaml(indent=2) }}
+{% endif %}
+
+k8sServiceHost: "{{ cilium_k8s_service_host }}"
+k8sServicePort: "{{ cilium_k8s_service_port }}"
+
+{% if cilium_ipam_configuration %}
+ipam:
+  {{ cilium_ipam_configuration | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if cilium_bpf_configuration %}
+bpf:
+  {{ cilium_bpf_configuration | to_nice_yaml(indent=2) }}
+{% endif %}
+
+ipv4:
+  enabled: {{ cilium_enable_ipv4 | bool }}
+ipv6:
+  enabled: {{ cilium_enable_ipv6 | bool }}
+
+routingMode: "{{ cilium_routing_mode }}"
+{% if cilium_routing_mode == 'native' %}
+tunnelProtocol: ""
+{% elif cilium_routing_mode == 'tunnel' %}
+tunnelProtocol: "{{ cilium_tunnel_protocol }}"
+{% endif %}
+
+enableIPv4Masquerade: {{ cilium_enable_ipv4_masq | bool }}
+enableIPv6Masquerade: {{ cilium_enable_ipv6_masq | bool }}
+
+{% if cilium_routing_mode == 'native' and cilium_ipv4_native_cidr %}
+ipv4NativeRoutingCIDR: "{{ cilium_ipv4_native_cidr }}"
+{% endif %}
+{% if cilium_routing_mode == 'native' and cilium_ipv6_native_cidr %}
+ipv6NativeRoutingCIDR: "{{ cilium_ipv6_native_cidr }}"
+{% endif %}
+{% if cilium_autodirect_node_routes is defined %}
+autoDirectNodeRoutes: {{ cilium_autodirect_node_routes | bool }}
+{% endif %}
+
+{% if cilium_load_balancer_config %}
+loadBalancer:
+  {{ cilium_load_balancer_config | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if cilium_maglev_config %}
+maglev:
+  {{ cilium_maglev_config | to_nice_yaml(indent=2) }}
+{% endif %}
+
+l7Proxy: {{ cilium_l7_proxy | bool }}
+
+{% if cilium_bgp_control_plane_config %}
+bgpControlPlane:
+  {{ cilium_bgp_control_plane_config | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if cilium_ingress_controller_config %}
+ingressController:
+  {{ cilium_ingress_controller_config | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if cilium_gateway_api_config %}
+gatewayAPI:
+  {{ cilium_gateway_api_config | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if cilium_encryption_config %}
+encryption:
+  {{ cilium_encryption_config | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if cilium_ip_masq_agent_config %}
+ipMasqAgent:
+  {{ cilium_ip_masq_agent_config | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if cilium_hubble_config %}
+hubble:
+  {{ cilium_hubble_config | to_nice_yaml(indent=2) }}
+{% endif %}
+
+rollOutCiliumPods: {{ cilium_rollout_pods_on_update | bool }}
+
+{% if cilium_update_strategy %}
+updateStrategy:
+  {{ cilium_update_strategy | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if cilium_additional_options %}
+{{ cilium_additional_options | to_nice_yaml(indent=0) }}
+{% endif %}

@@ -1,0 +1,17 @@
+config:
+  outputs: |
+    [OUTPUT]
+        Name es
+        Match kube.*
+        Host 5.34.202.235
+        Trace_Error On
+        Trace_Output On
+        Retry_Limit False
+
+    [OUTPUT]
+        Name es
+        Match host.*
+        Host 5.34.202.235
+        Trace_Error  On
+        Trace_Output On
+        Retry_Limit False

@@ -1,0 +1,50 @@
+---
+
+- name: helm repo add
+  when:
+    - rook_ceph__helm_repo_installed.status is not defined
+  kubernetes.core.helm_repository:
+    name: "{{ rook_ceph_repo_name }}"
+    repo_url: "{{ rook_ceph_chart_url }}"
+  run_once: true
+
+- name: Install rook-ceph chart
+  kubernetes.core.helm:
+    name: "{{ rook_ceph_release_name }}"
+    chart_ref: "{{ rook_ceph_chart_name }}"
+    release_namespace: "{{ rook_ceph_namespace }}"
+    create_namespace: true
+    update_repo_cache: true
+    atomic: true
+    wait: true
+    # values: "{{ rook_ceph_values }}"
+
+
+- name: templates of ceph cluster - toolbox - storageclass 
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: 'cephcluster.yml.j2', dest: '/tmp/cluster.yml' }
+    - { src: 'toolbox.yml.j2', dest: '/tmp/toolbox.yml' }
+    - { src: 'storageclass.yml.j2', dest: '/tmp/storageclass.yml' }
+
+- name: ceph cluster apply
+  kubernetes.core.k8s:
+    state: present
+    wait: true
+
+    src: /tmp/cluster.yml
+
+- name: ceph toolbox apply
+  kubernetes.core.k8s:
+    state: present
+    wait: true
+    src: /tmp/toolbox.yml
+
+- name: ceph storage class apply
+  kubernetes.core.k8s:
+    state: present
+    wait: true
+    src: /tmp/storageclass.yml

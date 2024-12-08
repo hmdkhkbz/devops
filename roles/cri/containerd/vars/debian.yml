@@ -1,0 +1,2 @@
+docker_apt_repo: "https://download.docker.com/linux/debian"
+docker_apt_key: "https://download.docker.com/linux/debian/gpg"

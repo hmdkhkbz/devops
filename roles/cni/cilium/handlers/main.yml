@@ -1,0 +1,8 @@
+---
+  - name: Restart Cilium if Config Changed
+    ansible.builtin.shell: |
+      {{ cilium_kubectl_bin_path }} -n kube-system rollout restart deployment/cilium-operator
+      {{ cilium_kubectl_bin_path }} -n kube-system rollout restart daemonset/cilium
+    environment:
+      KUBECONFIG: "{{ cilium_kubeconfig_path }}"
+    changed_when: true

@@ -1,0 +1,5 @@
+---
+kube_apiserver_node_port_range: "30000-32767"
+sysctl_file_path: "/etc/sysctl.d/99-kubernetes.conf"
+name_server1: "1.1.1.1"
+name_server2: "8.8.8.8"

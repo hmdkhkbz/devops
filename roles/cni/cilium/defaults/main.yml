@@ -1,0 +1,125 @@
+---
+# Path on the master node where to save Cilium config that gets passed to Cilium CLI on install/config change
+cilium_config_file_path: "/etc/cilium-config.yml"
+
+# Cilium version to be installed/upgraded/downgraded
+cilium_version: "1.16.3"
+
+# Cilium CLI version to be installed/upgraded/downgraded
+# If left blank, the latest version of Cilium CLI will be determined and installed
+cilium_cli_version: "v0.16.20"
+
+# Cilium CLI binary path
+cilium_cli_bin_path: /usr/local/bin/cilium
+
+# Kubectl binary path
+cilium_kubectl_bin_path: /usr/local/bin/kubectl
+
+# Kubectl config path
+cilium_kubeconfig_path: "{{ lookup('env', 'HOME') }}/.kube/config"
+
+# Restart Cilium operator and agents on config change
+cilium_restart_on_config_change: false
+
+# Cilium specific configurations
+
+# Configure the kube-proxy replacement in Cilium BPF datapath
+# Valid options are "true", "false".
+# Reference: https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/
+cilium_kube_proxy_replacement: false
+
+# (Optional) Healthz server bind address for the kube-proxy replacement.
+# To enable, set the value to '0.0.0.0:10256' for all IPv4 addresses
+# and '[::]:10256' for all IPv6 addresses.
+cilium_kube_proxy_healthz_address: ""
+
+# (Optional) Cilium Operator configuration
+cilium_operator_configuration: {}
+
+# Kubernetes service host and port
+cilium_k8s_service_host: ""
+cilium_k8s_service_port: "6443"
+
+# (Optional) Configure IP Address Management mode.
+# Reference: https://docs.cilium.io/en/stable/network/concepts/ipam/
+cilium_ipam_configuration: {}
+
+# (Optional) BPF related configuration
+cilium_bpf_configuration: {}
+
+# IPv4 and IPv6 support
+cilium_enable_ipv4: true
+cilium_enable_ipv6: false
+
+# Routing mode and tunneling protocol
+cilium_routing_mode: tunnel  # Options: "", native, tunnel
+cilium_tunnel_protocol: geneve  # Options: "", vxlan, geneve
+
+# IP Masquerading
+cilium_enable_ipv4_masq: true
+cilium_enable_ipv6_masq: false
+
+# (Optional) Native Routing CIDRs
+cilium_ipv4_native_cidr: ""
+cilium_ipv6_native_cidr: ""
+
+# (Optional) PodCIDR routes between worker nodes
+cilium_autodirect_node_routes: false
+
+# (Optional) Service load balancing configuration
+cilium_load_balancer_config: {}
+
+# (Optional) Maglev consistent hashing configuration
+cilium_maglev_config: {}
+
+# Layer 7 network policy
+cilium_l7_proxy: true
+
+# (Optional) BGP Control Plane configuration
+cilium_bgp_control_plane_config: {}
+
+# (Optional) Ingress controller configuration
+cilium_ingress_controller_config: {}
+
+# (Optional) Gateway API support configuration
+cilium_gateway_api_config: {}
+
+# (Optional) Transparent network encryption configuration
+cilium_encryption_config: {}
+
+# (Optional) eBPF-based IP masquerade agent configuration
+cilium_ip_masq_agent_config: {}
+
+# (Optional) Hubble configuration
+cilium_hubble_config: {}
+
+# Install Hubble CLI
+cilium_install_hubble_cli: true
+
+# Hubble CLI version to be installed/upgraded/downgraded
+# If left blank, the latest version of Hubble CLI will be determined and installed
+cilium_hubble_cli_version: "v1.16.3"
+
+# Hubble CLI binary path
+cilium_hubble_cli_bin_path: /usr/local/bin/hubble
+
+# Roll out Cilium agent pods automatically when configmap is updated.
+cilium_rollout_pods_on_update: false
+
+# (Optional) Cilium agent update strategy
+cilium_update_strategy: {}
+
+# (Optional) Additional options to pass to Cilium config in YAML format
+cilium_additional_options: {}
+
+# Install required Gateway API CRDs
+cilium_install_gw_api_crds: false
+
+# Gateway API CRDs version to install
+# Required when cilium_install_gw_api_crds is set to true
+# Supported versions:
+#   - cilium 1.13.x: 0.5.1
+#   - cilium 1.14.x: 0.7.0
+#   - cilium 1.15.x: 1.0.0
+#   - cilium 1.16.x: 1.1.0
+cilium_gw_api_crds_version: "1.1.0"

@@ -1,0 +1,28 @@
+---
+
+- name: helm repo add for cert-manager
+  kubernetes.core.helm_repository:
+    name: "{{ cert_manager_repo_name }}"
+    repo_url: "{{ cert_manager_chart_url }}"
+  run_once: true
+
+- name: cert-manager | Install cert-manager chart
+  kubernetes.core.helm:
+    name: "{{ cert_manager_release_name }}"
+    chart_ref: "{{ cert_manager_chart_name }}"
+    release_namespace: "{{ cert_manager_namespace }}"
+    chart_version: "{{ cert_manager_chart_version }}"
+    create_namespace: true
+    update_repo_cache: true
+    values: "{{ cert_manager_values }}" 
+
+- name: cert-manager | default config of cert-manager
+  ansible.builtin.template:
+    src: "issuer.yml.j2"
+    dest: "/tmp/issuer.yml"
+    mode: "0644"
+
+- name: cert-manager | apply cert-maanger default config
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/issuer.yml

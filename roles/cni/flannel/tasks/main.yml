@@ -1,0 +1,27 @@
+---
+- name: Ensure Python kubernetes library is installed
+  ansible.builtin.pip:
+    name: kubernetes
+    state: present
+  when: "'master-1' in inventory_hostname"
+
+- name: Flannel | Validate Kernel Version for Wireguard Encryption
+  assert:
+    that:
+      - ansible_kernel.split('-')[0] is version('5.6.0', '>=')
+    msg: "Kernel version must be >= 5.6.0 for Flannel Wireguard encryption."
+  when:
+    - flannel_backend_type == 'wireguard'
+    - not ignore_assert_errors
+
+- name: Flannel | Create Flannel RBAC and DaemonSet Manifests on Control Plane
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ kube_config_dir }}/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: 'cni-flannel.yml.j2', dest: 'cni-flannel.yml' }
+  register: flannel_node_manifests
+
+- name: Flannel | Apply Flannel DaemonSet Manifest using kubectl
+  command: kubectl apply -f {{ kube_config_dir }}/cni-flannel.yml

@@ -1,0 +1,29 @@
+---
+- name: Ensure Helm is installed
+  command: "helm version"
+  register: helm_version
+  failed_when: helm_version.rc != 0
+
+- name: Add Fluent Helm repository
+  command: "helm repo add fluent https://fluent.github.io/helm-charts"
+  when: helm_version.rc == 0
+
+- name: Update Helm repositories
+  command: "helm repo update"
+  when: helm_version.rc == 0
+
+- name: Copy template file to target host
+  ansible.builtin.template:
+    src: "templates/values.yaml.j2"  # Path to the template file in the role directory
+    dest: "/root/values.yaml"  # Destination path on the target host
+    owner: "root"  # Optional: set file owner
+    group: "root"  # Optional: set file group
+    mode: "0644"   # Optional: set file permissions
+
+- name: Run helm upgrade command to install or upgrade Fluent Bit
+  ansible.builtin.shell: helm upgrade --install fluent-bit fluent/fluent-bit --values /root/values.yaml
+    #- name: Install or upgrade Fluent Bit chart
+    # kubernetes.core.helm:
+    #name: "fluent-bit"
+    #chart: "fluent/fluent-bit"
+    #values: "{{ values.yaml.j2 }}"

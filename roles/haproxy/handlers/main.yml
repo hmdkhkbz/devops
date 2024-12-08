@@ -1,0 +1,8 @@
+---
+- name: Reload resolvconf
+  command: resolvconf -u
+
+- name: restart haproxy container
+  docker_container:
+    name: haproxy
+    restart: true

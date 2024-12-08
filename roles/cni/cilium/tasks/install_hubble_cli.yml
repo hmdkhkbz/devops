@@ -1,0 +1,26 @@
+---
+- name: Cilium | Set Hubble CLI architecture
+  ansible.builtin.set_fact:
+    cilium_hubble_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
+- name: Cilium | Download Hubble CLI
+  ansible.builtin.get_url:
+    url: "https://github.com/cilium/hubble/releases/download/{{ cilium_hubble_cli_version }}/hubble-linux-{{ cilium_hubble_arch }}.tar.gz"
+    dest: "/tmp/hubble-linux-{{ cilium_hubble_arch }}.tar.gz"
+    mode: "0755"
+  register: download_hubble_cli
+
+- name: Cilium | Extract Hubble CLI
+  ansible.builtin.unarchive:
+    src: "/tmp/hubble-linux-{{ cilium_hubble_arch }}.tar.gz"
+    dest: "/tmp/"
+    remote_src: true
+    mode: "0755"
+
+- name: Cilium | Install Hubble CLI binary
+  ansible.builtin.copy:
+    src: "/tmp/hubble"
+    dest: "{{ cilium_hubble_cli_bin_path }}"
+    mode: "0755"
+    remote_src: true
+  become: true

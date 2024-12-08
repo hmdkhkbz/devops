@@ -1,0 +1,57 @@
+defaults
+    log global
+    timeout connect 500000
+    timeout client 2400000
+    timeout server 2400000
+
+frontend apiservers
+    bind *:6443
+    mode tcp
+    option tcplog
+    default_backend master_servers
+
+backend master_servers
+    mode tcp
+    log global
+    balance leastconn
+    option tcp-check
+    option log-health-checks
+    option ssl-hello-chk
+    default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
+{% for host in groups['masters'] %}
+    server {{ hostvars[host].ansible_hostname }} {{ hostvars[host].ansible_host }}:6443 check fall 3 rise 2
+{% endfor %}
+
+frontend http
+    bind *:80
+    mode tcp
+    option tcplog
+    default_backend http80
+
+backend http80
+    mode tcp
+    log global
+    balance leastconn
+    option tcp-check
+    option log-health-checks
+    default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
+{% for host in groups['workers'] %}
+    server {{ hostvars[host].ansible_hostname }} {{ hostvars[host].ansible_host }}:80 check fall 3 rise 2
+{% endfor %}
+
+frontend https
+    bind *:443
+    mode tcp
+    option tcplog
+    default_backend https443
+
+backend https443
+    mode tcp
+    log global
+    balance leastconn
+    option tcp-check
+    option log-health-checks
+    default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
+{% for host in groups['workers'] %}
+    server {{ hostvars[host].ansible_hostname }} {{ hostvars[host].ansible_host }}:443 check fall 3 rise 2
+{% endfor %}

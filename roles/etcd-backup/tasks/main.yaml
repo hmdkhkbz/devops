@@ -1,0 +1,44 @@
+---
+- name: check connectivity
+  ping:
+    data: alive
+
+- name: update and upgrade system
+  apt:
+    update_cache: yes
+
+- name: install S3cmd and etcd client
+  apt:
+    pkg:
+      - s3cmd
+      - etcd-client
+    state: present
+
+- name: Copy the config file to the root user directory
+  copy:
+    src: templates/s3cfg.j2
+    dest: /root/.s3cfg
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Create backup directory
+  file:
+    path: /data/etcd-backup
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+
+- name: Backing up ETCD every first minute of every hour
+  ansible.builtin.cron:
+    name: "Etcd Backup"
+    weekday: "*"
+    minute: "59"
+    hour: "*"
+    day: "*"
+    cron_file: etcd_backup
+    user: root
+    job: ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db  && s3cmd put /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db s3://{{ etcd_backup_bucket }}/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db
+    state: present

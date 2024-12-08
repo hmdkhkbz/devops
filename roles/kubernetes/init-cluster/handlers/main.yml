@@ -1,0 +1,11 @@
+---
+- name: Control plane | reload systemd
+  systemd_service:
+    daemon_reload: true
+  listen: Control plane | restart kubelet
+
+- name: Control plane | reload kubelet
+  service:
+    name: kubelet
+    state: restarted
+  listen: Control plane | restart kubelet

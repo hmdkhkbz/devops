@@ -1,0 +1,31 @@
+---
+# Basic Directories and Runtime Settings
+containerd_storage_dir: "/etc/containerd"
+containerd_state_dir: "/run/containerd"
+containerd_cfg_dir: "/etc/containerd"
+containerd_default_runtime: "runc"
+containerd_snapshotter: "overlayfs"
+containerd_oom_score: 0
+containerd_bin_dir: "/usr/bin/containerd"
+
+# Debug and Metrics Settings
+containerd_debug_level: "info"
+containerd_metrics_address: "127.0.0.1:1338"  # Local endpoint for containerd metrics
+containerd_metrics_grpc_histogram: true       # Enable gRPC histogram for detailed metrics
+containerd_debug_format: "json"
+containerd_debug_gid: 0
+containerd_debug_uid: 0
+
+# Registry Configuration
+containerd_registries_mirrors:
+  - prefix: docker.io
+    mirrors:
+      - host: https://registry-1.docker.io
+        capabilities: ["pull", "resolve"]
+        skip_verify: false
+
+# Security Settings
+containerd_enable_unprivileged_ports: false
+containerd_enable_unprivileged_icmp: false
+containerd_enable_selinux: false
+containerd_disable_apparmor: false

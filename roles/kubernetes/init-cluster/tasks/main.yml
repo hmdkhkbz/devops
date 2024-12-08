@@ -1,0 +1,25 @@
+---
+- name: Kubeadm | Check if kubeadm has already run
+  stat:
+    path: "/var/lib/kubelet/config.yaml"
+    get_attributes: false
+    get_checksum: false
+    get_mime: false
+  register: kubeadm_already_run
+
+- name: Kubeadm | Print message if kubeadm has already run
+  debug:
+    msg: "Kubeadm has already been run."
+  when: kubeadm_already_run.stat.exists == true
+
+- name: Kubeadm | Define first kube-control
+  include_tasks: define-first-kube-control.yml
+  when: kubeadm_already_run.stat.exists == false
+
+- name: Kubeadm | Join others master
+  include_tasks: join-masters.yml
+  when: kubeadm_already_run.stat.exists == false
+
+- name: Kubeadm | Join workers
+  include_tasks: join-workers.yml
+  when: kubeadm_already_run.stat.exists == false

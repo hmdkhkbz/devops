@@ -1,0 +1,150 @@
+---
+- name: Check Connectivity
+  ping:
+
+- name: Update and Upgrade system
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+- name: Install base packages for Kubernetes
+  apt:
+    update_cache: yes
+    name:
+      - net-tools
+      - iproute2
+      - vim
+      - wget
+      - curl
+      - git
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - software-properties-common
+      - conntrack
+      - fuse-overlayfs
+      - python3-pip
+      - socat
+      - iptables
+      - rsync
+      - tar
+      - unzip
+      - ebtables
+      - ipvsadm
+      - bridge-utils
+      - jq
+      - resolvconf
+      - ntp
+      - bmon
+      - tcpdump
+      - bash-completion
+    state: present
+
+- name: Install K8S Python Pre-requisites
+  pip:
+    name:
+      - pyyaml
+      - kubernetes
+
+- name: Configure resolvconf
+  block:
+    - name: Set resolvconf head
+      copy:
+        dest: /etc/resolvconf/resolv.conf.d/head
+        content: |
+          nameserver {{ name_server1 }}
+          nameserver {{ name_server2 }}
+      notify:
+        - Reload resolvconf
+
+    - name: Ensure resolvconf service is running
+      systemd:
+        name: resolvconf
+        state: started
+        enabled: yes
+
+- name: Replace /etc/resolv.conf with a symlink
+  block:
+    - name: Remove existing /etc/resolv.conf
+      file:
+        path: /etc/resolv.conf
+        state: absent
+
+    - name: Create symbolic link for /etc/resolv.conf
+      file:
+        src: ../etc/resolvconf/resolv.conf.d/head
+        dest: /etc/resolv.conf
+        state: link
+        owner: root
+        group: root
+        mode: '0644'
+
+- name: Disable swap
+  block:
+    - name: Disable swap temporarily
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    - name: Disable swap permanently
+      replace:
+        path: /etc/fstab
+        regexp: '^\s*([^#].*\sswap\s)'
+        replace: '#\1'
+        backup: yes
+      when: ansible_swaptotal_mb > 0
+
+- name: Ensure necessary kernel modules are loaded
+  block:
+    - name: Load overlay module
+      ansible.builtin.modprobe:
+        name: overlay
+        state: present
+
+    - name: Load br_netfilter module
+      modprobe:
+        name: br_netfilter
+
+    - name: Ensure kernel modules are loaded on boot
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+        owner: root
+        group: root
+        mode: '0644'
+
+- name: Ensure nodePort range is reserved and other sysctl settings
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    sysctl_file: "{{ sysctl_file_path }}"
+    state: present
+    reload: true
+  loop:
+    - { name: "net.ipv4.ip_local_reserved_ports", value: "{{ kube_apiserver_node_port_range }}" }
+    - { name: "net.bridge.bridge-nf-call-iptables", value: "1" }
+    - { name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { name: "net.ipv4.ip_forward", value: "1" }
+
+- name: Install and configure NTP
+  block:
+    - name: Install NTP package
+      apt:
+        name: ntp
+        state: present
+        update_cache: yes
+
+    - name: Start and enable NTP service
+      systemd:
+        name: ntp
+        enabled: true
+        state: started
+
+- name: Replace the line in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.0\.1\s+localhost$'
+    line: '127.0.0.1 localhost {{ ansible_facts.hostname }}'

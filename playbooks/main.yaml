@@ -1,0 +1,146 @@
+---
+- name: Validate Configuration Variables
+  hosts: k8s_cluster
+  gather_facts: true
+  tasks:
+    - name: Ensure CRI choice is valid
+      assert:
+        that:
+          - cri_choice in ['containerd', 'cri-o']
+        fail_msg: "Invalid CRI choice. Supported options are 'containerd' and 'cri-o'."
+
+    - name: Ensure CNI choice is valid
+      assert:
+        that:
+          - cni_choice in ['cilium', 'flannel']
+        fail_msg: "Invalid CNI choice. Supported options are 'cilium' and 'flannel'."
+
+    - name: Ensure Kubernetes domain is set
+      assert:
+        that:
+          - dns_domain is defined
+          - dns_domain | length > 0
+        fail_msg: "Kubernetes domain (dns_domain) must be defined and non-empty."
+
+    - name: Ensure Load Balancer address is set
+      assert:
+        that:
+          - loadbalancer is defined
+          - loadbalancer | length > 0
+        fail_msg: "Load Balancer address (loadbalancer) must be defined and non-empty."
+
+    - name: Ensure Pod Network CIDR is set
+      assert:
+        that:
+          - pod_network_cidr is defined
+          - pod_network_cidr | length > 0
+        fail_msg: "Pod Network CIDR (pod_network_cidr) must be defined and non-empty."
+
+    - name: Ensure HAProxy is enabled only if haproxy group exists
+      assert:
+        that:
+          - (enable_haproxy and groups['haproxy']) or not enable_haproxy
+        fail_msg: "HAProxy is enabled but no haproxy hosts are defined."
+
+- name: Kubernetes Cluster Setup - Setup Common Configuration
+  hosts: k8s_cluster
+  become: true
+  roles:
+    - common
+
+- name: Setup HAProxy Load Balancer
+  hosts: haproxy
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Setup HAProxy if enabled
+      ansible.builtin.include_role:
+        name: haproxy
+      when: enable_haproxy
+
+- name: Kubernetes Cluster Setup - Install Container Runtime Interface (CRI)
+  hosts: k8s_cluster
+  become: true
+  tasks:
+    - name: Install Container Runtime Interface (CRI)
+      ansible.builtin.include_role:
+        name: "{{ 'cri/' + cri_choice }}"
+      when: cri_choice in ['containerd', 'cri-o']
+
+- name: Pre-Install Kubernetes Cluster
+  hosts: k8s_cluster
+  become: true
+  roles:
+    - kubernetes/preinstall
+  tags:
+    - kubernetes/preinstall
+
+
+- name: Kubernetes Cluster Setup - Initialize Cluster
+  hosts: k8s_cluster
+  become: true
+  roles:
+    - kubernetes/init-cluster
+
+- name: Kubernetes Cluster Setup - Install Container Network Interface (CNI)
+  hosts: master-1
+  become: true
+  tasks:
+    - name: Install Container Network Interface (CNI)
+      ansible.builtin.include_role:
+        name: "{{ 'cni/' + cni_choice }}"
+      when: cni_choice in ['cilium', 'flannel']
+
+- name: deploy ingress
+  hosts: master-1
+  become: true
+  roles:
+    - kubernetes-app/ingress-nginx 
+
+- name: deploy cert-manager
+  hosts: master-1
+  become: true
+  roles:
+    - kubernetes-app/cert-manager
+  tags:
+    - cert-manager
+
+- name: deploy csi
+  hosts: master-1
+  become: true
+  roles:
+    - csi/rook-ceph
+  tags:
+    - rook-ceph
+
+- name: backupi from etcd to s3
+  hosts: master-1
+  become: true
+  roles:
+    - etcd-backup
+  tags:
+    - etcd
+
+- name: deploy ELK agent
+  hosts: master-1
+  become: true
+  roles:
+    - fluent-bit
+  tags:
+    - fluent-bit
+
+- name: deploy prometheus agent
+  hosts: master-1
+  become: true
+  roles:
+    - kube-state-metrics
+  tags:
+    - kube-metrics
+
+- name: Node Exporter
+  hosts: all
+  become: true
+  roles:
+    - node-exporter
+  tags: 
+    - node-exporter

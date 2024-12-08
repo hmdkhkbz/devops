@@ -1,0 +1,17 @@
+---
+# ------------------------
+# Flannel Configuration
+# ------------------------
+
+flannel_backend_type: "vxlan"
+flannel_vxlan_vni: 1
+flannel_vxlan_port: 8472
+flannel_vxlan_direct_routing: false
+enable_dual_stack_networks : false
+
+# Limits for apps
+flannel_memory_limit: 500M
+flannel_cpu_limit: 300m
+
+pod_network_cidr: "10.244.0.0/16"
+kube_config_dir: "/etc/kubernetes/manifests"

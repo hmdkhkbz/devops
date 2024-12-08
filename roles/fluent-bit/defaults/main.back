@@ -1,0 +1,4 @@
+# defaults/main.yml
+configmap_name: "fluent-bit"
+namespace: "default"
+configmap_file: "fluent-bit-configmap.yml"

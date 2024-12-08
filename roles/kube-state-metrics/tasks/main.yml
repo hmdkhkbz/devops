@@ -1,0 +1,3 @@
+---
+- name: Run helm install kube-state-metrics
+  ansible.builtin.shell: helm upgrade --install kube-state-metrics oci://registry-1.docker.io/bitnamicharts/kube-state-metrics

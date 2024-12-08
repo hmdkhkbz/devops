@@ -1,0 +1,40 @@
+---
+- name: Kubeadm | Generate join token for additional masters and workers
+  command: kubeadm token create --print-join-command
+  register: join_command
+  when: ansible_hostname == "master-1"
+
+- name: Kubeadm | Set join command as a fact
+  set_fact:
+    kubeadm_join_command: "{{ join_command.stdout }}"
+  when: ansible_hostname == "master-1" and join_command.rc == 0
+
+- name: Kubeadm | Debug kubeadm_join_command
+  debug:
+    var: kubeadm_join_command
+  when: ansible_hostname == "master-1"
+
+- name: Kubeadm | Extract the certificate key
+  shell: "kubeadm init phase upload-certs --upload-certs | grep -vw -e certificate -e Namespace | awk '{print $NF}'"
+  register: certificate_key_k8s
+  when: ansible_hostname == "master-1"
+
+- name: Kubeadm | Debug certificate key
+  debug: 
+    var: certificate_key_k8s.stdout
+  when: ansible_hostname == "master-1"
+
+- name: Kubeadm | Save the master join command as a fact
+  set_fact:
+    master_join_command: "{{ kubeadm_join_command }} --certificate-key {{ certificate_key_k8s.stdout }} --control-plane"
+  when: ansible_hostname == "master-1"
+
+- name: Kubeadm | Debug master join command
+  debug:
+    var: master_join_command
+
+- name: Kubeadm | Join the master nodes to the Kubernetes cluster
+  shell: "{{ hostvars[master-1]['master_join_command'] }}"
+  when: 
+    - ansible_hostname != "master-1"
+    - "'masters' in group_names"

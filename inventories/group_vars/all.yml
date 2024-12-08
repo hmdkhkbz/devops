@@ -1,0 +1,33 @@
+# Choose the CRI: 'containerd' or 'cri-o'
+cri_choice: "cri-o"
+
+# Choose the CNI: 'cilium' or 'flannel'
+cni_choice: "cilium"
+
+# Choose the CSI: 'openEBS' or 'rook-ceph'
+csi_choice: "rook-ceph"
+
+#Specifies the version of Kubernetes to install.
+k8s_version: "v1.31"
+
+# Kubernetes Domain, for set to hostfile only
+dns_domain: "k8s.hmdkh.ir"
+
+# Load Balancer Address, the Cluster will be init on this
+loadbalancer: "k8s.hmdkh.ir"
+
+#Boolean flag to determine whether to populate inventory hosts into the /etc/hosts file.
+populate_inventory_to_hosts_file: "true"
+
+#Boolean flag to determine whether to add the Kubernetes API server load balancer address to the /etc/hosts file.
+populate_loadbalancer_apiserver_to_hosts_file: "false"
+
+#Nameservers that set on resolv.conf
+name_server1: "185.206.92.250"
+name_server2: "185.231.181.206"
+
+# Pod Network CIDR
+pod_network_cidr: "10.244.0.0/16"
+
+# Enable or Disable HAProxy Load Balancer
+enable_haproxy: true  # Set to 'true' to enable HAProxy as Loadbalancer between Master Nodes

@@ -1,0 +1,19 @@
+- name: Generate join token for workers
+  command: kubeadm token create --print-join-command
+  register: join_command
+  when: ansible_hostname == "master-1"
+
+- name: Set join command as a fact
+  set_fact:
+    kubeadm_join_command: "{{ join_command.stdout }}"
+  when: ansible_hostname == "master-1"
+
+- name: Join the worker nodes to the Kubernetes cluster
+  command: "{{ hostvars[master-1]['kubeadm_join_command'] }}"
+  when: "'workers' in group_names"
+
+- name: Label each worker node from master-1
+  command: kubectl label nodes {{ item }} node-role.kubernetes.io/worker=worker
+  run_once: true
+  with_items: "{{ groups['workers'] | map('extract', hostvars, 'ansible_hostname') | list }}"
+  when: ansible_hostname == "master-1"

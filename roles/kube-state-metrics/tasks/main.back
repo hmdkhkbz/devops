@@ -1,0 +1,10 @@
+---
+- name: Create Service Account for kube-state-metrics 
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'kube-state-metrics-sa.yml.j2') }}"
+
+- name: Deploy kube-state-metrics DaemonSet to Kubernetes
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'kube-state-metrics-daemonset.yml.j2') }}"

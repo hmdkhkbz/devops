@@ -1,0 +1,41 @@
+---
+- name: Check Connectivity
+  ping:
+
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_distribution | lower }}.yml"
+
+- name: Add Docker repository key
+  apt_key:
+    url: "{{ docker_apt_key }}"
+    state: present
+
+- name: Add Docker APT repository
+  apt_repository:
+    repo: "deb [arch=amd64] {{ docker_apt_repo }} {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Update and Upgrade system
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+- name: Install containerd
+  apt:
+    name: containerd
+    state: present
+
+- name: Ensure containerd storage directory exists
+  file:
+    path: "{{ containerd_storage_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure containerd service
+  template:
+    src: containerd-config.toml.j2
+    dest: "{{ containerd_cfg_dir }}/config.toml"
+    mode: '0644'
+  notify: Restart containerd

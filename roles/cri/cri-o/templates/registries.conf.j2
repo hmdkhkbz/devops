@@ -1,0 +1,2 @@
+# CRI-O registries configuration file
+unqualified-search-registries = [{% for item in crio_registries %}"{{ item.location }}"{% if not loop.last %},{% endif %}{% endfor %}]

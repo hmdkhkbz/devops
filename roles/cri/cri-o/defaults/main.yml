@@ -1,0 +1,27 @@
+---
+# CRI-O Configuration Defaults
+
+# General CRI-O settings
+crio_version : "v1.31"
+crio_log_level: "info"
+crio_root: "/var/lib/containers/storage"
+crio_runroot: "/var/run/containers/storage"
+crio_storage_driver: "overlay"
+crio_storage_option: [
+  "overlay.mount_program=/usr/bin/fuse-overlayfs"
+]
+
+# Runtime settings
+crio_default_runtime: "crun"
+crio_container_exits_dir: "/var/run/crio/exits"
+crio_container_attach_socket_dir: "/var/run/crio"
+
+# Network settings
+crio_network_dir: "/etc/cni/net.d/"
+crio_plugin_dirs: ["/usr/libexec/cni", "/opt/cni/bin"]
+
+crio_registries:
+  - location: "docker.io"
+  - location: "quay.io"
+  - location: "k8s.gcr.io"
+  - location: "ghcr.io"

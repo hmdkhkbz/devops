@@ -1,0 +1,26 @@
+---
+- name: Cilium | Set Cilium CLI architecture
+  ansible.builtin.set_fact:
+    cilium_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
+- name: Cilium | Download Cilium CLI
+  ansible.builtin.get_url:
+    url: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-{{ cilium_arch }}.tar.gz"
+    dest: "/tmp/cilium-linux-{{ cilium_arch }}.tar.gz"
+    mode: "0755"
+  register: download_cilium_cli
+
+- name: Cilium | Extract Cilium CLI
+  ansible.builtin.unarchive:
+    src: "/tmp/cilium-linux-{{ cilium_arch }}.tar.gz"
+    dest: "/tmp/"
+    remote_src: true
+    mode: "0755"
+
+- name: Cilium | Install Cilium CLI binary
+  ansible.builtin.copy:
+    src: "/tmp/cilium"
+    dest: "{{ cilium_cli_bin_path }}"
+    mode: "0755"
+    remote_src: true
+  become: true

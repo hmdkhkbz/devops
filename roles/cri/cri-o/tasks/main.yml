@@ -1,0 +1,62 @@
+---
+- name: Cri-o | Ensure apt keyring directory exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Add CRI-O GPG keys to apt
+  apt_key:
+    url: "{{ item.url }}"
+    keyring: "{{ item.keyring }}"
+  with_items:
+    - { url: 'https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crio_version }}/deb/Release.key', keyring: '/etc/apt/keyrings/cri-o-apt-keyring.gpg' }
+
+- name: Cri-o | Add CRI-O repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crio_version }}/deb/ /"
+    filename: "cri-o"
+    state: present
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Cri-o | Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Cri-o | Install CRI-O
+  ansible.builtin.apt:
+    name: "cri-o"
+    state: present
+    update_cache: yes
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Cri-o | Ensure directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /etc/crio
+    - /etc/containers
+
+- name: Cri-o | Configure CRI-O
+  template:
+    src: crio.conf.j2
+    dest: /etc/crio/crio.conf
+    mode: "0644"
+  notify: Restart crio
+
+- name: Cri-o | Configure CRI-O registries
+  template:
+    src: registries.conf.j2
+    dest: "/etc/containers/registries.conf.d/crio.conf"
+    mode: "0644"
+  notify: Restart crio
+
+- name: Cri-o | Start and enable CRI-O service
+  systemd:
+    name: crio
+    state: started
+    enabled: true

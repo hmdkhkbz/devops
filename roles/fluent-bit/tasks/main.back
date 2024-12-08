@@ -1,0 +1,21 @@
+# tasks/main.yml
+- name: Create Service Account for fluent-bit
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'fluent-bit-sa.yml.j2') }}"
+#
+- name: Deploy fluent-bit configmap
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'fluent-bit-configmap.yml.j2') }}"
+
+- name: Deploy fluent-bit Daemonset
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'fluent-bit-daemonset.yml.j2') }}"
+
+- name: Deploy fluent-bit svc
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'fluent-bit-svc.yml.j2') }}"
+

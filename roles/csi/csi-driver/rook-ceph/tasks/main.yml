@@ -1,0 +1,19 @@
+---
+
+- name: ceph driver | Add ceph_csi Helm repo
+  kubernetes.core.helm_repository:
+    name: "{{ ceph_csi_repo_name }}"
+    repo_url: "{{ ceph_csi_chart_url }}"
+  when:
+    - ceph_csi__helm_repo_installed.status is not defined
+  run_once: true
+
+- name: ceph driver | Install or upgrade ceph_csi chart
+  kubernetes.core.helm:
+    name: "{{ ceph_csi_release_name }}"
+    chart_ref: "{{ ceph_csi_repo_name }}/{{ ceph_csi_release_name }}"
+    release_namespace: "{{ ceph_csi_namespace }}"
+    create_namespace: true
+    update_repo_cache: true
+    # values: "{{ ceph_csi_desired_values }}"
+    state: present

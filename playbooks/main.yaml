@@ -113,6 +113,14 @@
   tags:
     - rook-ceph
 
+- name: deploy MySQL operator
+  hosts: master-1
+  become: true
+  roles:
+    - pxc
+  tags:
+    - pxc
+
 - name: backupi from etcd to s3
   hosts: master-1
   become: true
@@ -136,6 +144,14 @@
     - kube-state-metrics
   tags:
     - kube-metrics
+
+- name: deploy velero
+  hosts: master-1
+  become: true
+  roles:
+    - velero
+  tags:
+    - velero
 
 - name: Node Exporter
   hosts: all

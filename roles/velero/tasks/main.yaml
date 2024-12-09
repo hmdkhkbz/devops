@@ -1,0 +1,35 @@
+    - name: Add VMware Tanzu Helm repository
+      community.kubernetes.helm_repository:
+        name: vmware-tanzu
+        repo_url: https://vmware-tanzu.github.io/helm-charts
+        state: present
+
+    - name: Update Helm repositories
+      command: "helm repo update"
+
+    - name: Copy Velero S3 Keys file
+      template:
+        src: templates/velero.credentials.j2
+        dest: /root/velero.credentials
+
+          
+    - name: Install or Upgrade Velero Server with Helm
+      ansible.builtin.shell: |
+        helm upgrade --install velero vmware-tanzu/velero \
+          --namespace velero \
+          --set provider=aws \
+          --set plugins="velero/velero-plugin-for-aws:v1.6.1" \
+          --set backupLocationConfig.region=default \
+          --set backupLocationConfig.s3ForcePathStyle="true" \
+          --set backupLocationConfig.s3Url=https://s3.ir-tbz-sh1.arvanstorage.ir \
+          --set bucket=velero \
+          --set secretFile=./velero.credentials \
+          --set useVolumeSnapshots=false
+
+    - name: Verify Velero installation
+      command: kubectl get pods -n velero
+      register: velero_pods
+      until: velero_pods.stdout | search("velero")
+      retries: 5
+      delay: 10
+

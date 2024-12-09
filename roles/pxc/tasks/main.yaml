@@ -1,0 +1,26 @@
+    - name: Add Percona Operator Helm repository
+      community.kubernetes.helm_repository:
+        name: percona
+        repo_url: https://percona.github.io/percona-helm-charts/
+        state: present
+
+    - name: Update Helm repositories
+      command: "helm repo update"
+
+    - name: Install Percona PX-Operator
+      ansible.builtin.shell: |
+        helm upgrade --install "{{ percona_operator_release }}" "{{ pxc_operator_chart }}" \
+          --namespace "{{ namespace }}"
+      args:
+        creates: "/tmp/{{ percona_operator_release }}_installed"
+      register: helm_operator_install
+      failed_when: helm_operator_install.rc != 0 and "'release " + percona_operator_release + " not found' not in helm_operator_install.stderr"
+
+    - name: Install Percona PX-DB
+      ansible.builtin.shell: |
+        helm upgrade --install "{{ percona_db_release }}" "{{ pxc_db_chart }}" \
+          --namespace "{{ namespace }}"
+      args:
+        creates: "/tmp/{{ percona_db_release }}_installed"
+      register: helm_db_install
+      failed_when: helm_db_install.rc != 0 and "'release " + percona_db_release + " not found' not in helm_db_install.stderr"

@@ -37,16 +37,22 @@
     group: root
     mode: '0644'
 
+- name: Copy the cronjob file
+  copy:
+    src: templates/cron.j2
+    dest: /data/etcd-backup/cron.sh
+    mode: 0755
+    owner: root
+    group: root
+
+
 - name: Backing up ETCD every first minute of every hour
   ansible.builtin.cron:
     name: "Etcd Backup"
     weekday: "*"
-    minute: "59"
+    minute: "30"
     hour: "*"
     day: "*"
-    cron_file: /etc/cron.d/etcd_backup  # Change the location to /etc/cron.d/
-    user: root
-    job: |
-      ETCDCTL_API=3 /usr/local/bin/etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db &&
-      /usr/local/bin/s3cmd put /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db s3://{{ etcd_backup_bucket }}/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db >> /var/log/etcd_backup.log 2>&1
+    month: "*"
+    job: "bash /data/etcd-backup/cron.sh"
     state: present

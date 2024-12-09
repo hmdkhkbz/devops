@@ -1,6 +1,6 @@
 ---
-etcd_backup_bucket: 
-s3_access_key: 
-s3_secret_key: 
-s3_host_base: #s3.ir-tbz-sh1.arvanstorage.ir
-s3_host_bucket: #s3.ir-tbz-sh1.arvanstorage.ir
+etcd_backup_bucket: hmd-etcd #hmd-etcd
+s3_access_key: 96525a15-18ee-4e5c-8443-7058be438a88
+s3_secret_key: bfd1fc62d737b251692b1569881b1905b1a000b65aab20a8ee1b79c70d541135
+s3_host_base: s3.ir-tbz-sh1.arvanstorage.ir #s3.ir-tbz-sh1.arvanstorage.ir
+s3_host_bucket: s3.ir-tbz-sh1.arvanstorage.ir #s3.ir-tbz-sh1.arvanstorage.ir

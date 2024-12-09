@@ -11,3 +11,10 @@ Node-exporter on each k8s nodes, and also Fluent Bit and Kube State Metrics are 
 
 the Docker Registry, Gitlab, ELK and Prometheus/grafana are outside of Cluster as remote telementary
 
+Ansible-Roles:
+
+- Percona Operator for kubernetes
+- Velero
+- Kube State Metrics
+- Fluent Bit
+- Node Exporter

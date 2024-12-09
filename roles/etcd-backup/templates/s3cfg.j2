@@ -1,5 +1,5 @@
 [default]
-access_key = {{ s3_access_key }}
+access_key = 96525a15-18ee-4e5c-8443-7058be438a88
 access_token =
 add_encoding_exts =
 add_headers =
@@ -32,8 +32,8 @@ gpg_decrypt = %(gpg_command)s -d --verbose --no-use-agent --batch --yes --passph
 gpg_encrypt = %(gpg_command)s -c --verbose --no-use-agent --batch --yes --passphrase-fd %(passphrase_fd)s -o %(output_file)s %(input_file)s
 gpg_passphrase =
 guess_mime_type = True
-host_base = {{ s3_host_base }}
-host_bucket = {{ s3_host_bucket }}
+host_base = s3.ir-tbz-sh1.arvanstorage.ir
+host_bucket = s3.ir-tbz-sh1.arvanstorage.ir
 human_readable_sizes = False
 invalidate_default_index_on_cf = False
 invalidate_default_index_root_on_cf = True
@@ -60,7 +60,7 @@ reduced_redundancy = False
 requester_pays = False
 restore_days = 1
 restore_priority = Standard
-secret_key = {{ s3_secret_key }}
+secret_key = bfd1fc62d737b251692b1569881b1905b1a000b65aab20a8ee1b79c70d541135
 send_chunk = 65536
 server_side_encryption = False
 signature_v2 = False

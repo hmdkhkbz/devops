@@ -1,4 +1,3 @@
----
 - name: check connectivity
   ping:
     data: alive
@@ -30,6 +29,13 @@
     group: root
     mode: '0755'
 
+- name: Create log file
+  file:
+    path: /var/log/etcd_backup.log
+    state: touch
+    owner: root
+    group: root
+    mode: '0644'
 
 - name: Backing up ETCD every first minute of every hour
   ansible.builtin.cron:
@@ -38,7 +44,9 @@
     minute: "59"
     hour: "*"
     day: "*"
-    cron_file: etcd_backup
+    cron_file: /etc/cron.d/etcd_backup  # Change the location to /etc/cron.d/
     user: root
-    job: ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db  && s3cmd put /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db s3://{{ etcd_backup_bucket }}/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db
+    job: |
+      ETCDCTL_API=3 /usr/local/bin/etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db &&
+      /usr/local/bin/s3cmd put /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db s3://{{ etcd_backup_bucket }}/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db >> /var/log/etcd_backup.log 2>&1
     state: present

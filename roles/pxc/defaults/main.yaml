@@ -1,0 +1,12 @@
+# defaults/main.yaml
+
+# Helm release names
+percona_operator_release: "my-op"
+percona_db_release: "my-db"
+
+# Helm chart repository names
+pxc_operator_chart: "percona/pxc-operator"
+pxc_db_chart: "percona/pxc-db"
+
+# Namespace to deploy in
+namespace: "pxc"

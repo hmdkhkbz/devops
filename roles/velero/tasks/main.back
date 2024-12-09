@@ -1,0 +1,20 @@
+    - name: Download Velero tarball
+      get_url:
+        url: https://github.com/vmware-tanzu/velero/releases/download/v1.11.1/velero-v1.11.1-linux-amd64.tar.gz
+        dest: /tmp/velero-v1.11.1-linux-amd64.tar.gz
+
+    - name: Extract Velero tarball
+      unarchive:
+        src: /tmp/velero-v1.11.1-linux-amd64.tar.gz
+        dest: /tmp
+        remote_src: yes
+
+    - name: Move Velero binary to /usr/local/bin
+      ansible.builtin.shell: mv /tmp/velero-v1.11.1-linux-amd64/velero /usr/local/bin/velero
+
+    - name: Copy Velero S3 Keys file
+        src: {{ velero.credentials.j2 }}
+        dest: /root/velero.credentials
+
+    - name: install velero server
+      ansible.builtin.shell: velero install --use-node-agent   --provider aws   --plugins velero/velero-plugin-for-aws:v1.6.1   --bucket velero   --secret-file ./velero.credentials   --use-volume-snapshots=false   --backup-location-config region=default,s3ForcePathStyle="true",s3Url=https://s3.ir-tbz-sh1.arvanstorage.ir

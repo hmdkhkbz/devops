@@ -1,6 +1,15 @@
 config:
   outputs: |
     [OUTPUT]
+        Name              es
+        Match             **
+        Host              ## Example: 5.34.202.235
+        Port              ## Example: 9200
+        Index             my-index
+        Trace_Error       On
+        Trace_Output      On
+
+    [OUTPUT]
         Name es
         Match kube.*
         Host 5.34.202.235

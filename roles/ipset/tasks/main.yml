@@ -1,0 +1,7 @@
+- name: Copy the Whitelist file to the root user directory
+  copy:
+    src: templates/whitelist.j2
+    dest: /root/whitelist.txt
+    mode: 0755
+    owner: root
+    group: root

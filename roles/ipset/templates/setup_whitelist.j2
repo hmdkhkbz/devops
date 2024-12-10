@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Define variables
+IPSET_NAME="my_whitelist"
+WHITELIST_FILE="/root/whitelist.txt"
+
+# Install ipset (if not already installed)
+if ! command -v ipset &> /dev/null; then
+    echo "ipset not found, installing..."
+    sudo apt-get update && sudo apt-get install -y ipset
+else
+    echo "ipset is already installed."
+fi
+
+# Create the IP set if it doesn't exist
+if ! sudo ipset list "$IPSET_NAME" &> /dev/null; then
+    echo "Creating IP set $IPSET_NAME..."
+    sudo ipset create "$IPSET_NAME" hash:net
+else
+    echo "IP set $IPSET_NAME already exists."
+fi
+
+# Add IPs and CIDR blocks from whitelist.txt to the IP set
+if [ -f "$WHITELIST_FILE" ]; then
+    echo "Adding IPs and CIDR blocks from $WHITELIST_FILE to the IP set..."
+    while read -r ip; do
+        if [[ ! -z "$ip" ]]; then
+            sudo ipset add "$IPSET_NAME" "$ip" 2>/dev/null
+        fi
+    done < "$WHITELIST_FILE"
+else
+    echo "$WHITELIST_FILE not found. Please create the file with IPs/CIDR blocks."
+    exit 1
+fi
+
+# Create iptables rule to allow traffic from IP set
+echo "Creating iptables rule to allow traffic from IP set $IPSET_NAME..."
+sudo iptables -A INPUT -m set --match-set "$IPSET_NAME" src -j ACCEPT
+
+# Set default INPUT policy to DROP
+echo "Setting default INPUT policy to DROP..."
+sudo iptables -P INPUT DROP
+
+# Save iptables and ipset configurations
+echo "Saving iptables and ipset configurations..."
+sudo iptables-save > /etc/iptables/rules.v4
+sudo ipset save "$IPSET_NAME" > /etc/ipset.conf
+
+# Persist ipset rules across reboots
+echo "Ensuring ipset rules are reloaded on boot..."
+if ! grep -q 'ipset restore' /etc/rc.local; then
+    sudo sed -i '$i ipset restore < /etc/ipset.conf' /etc/rc.local
+fi
+
+# Make sure iptables rules persist across reboots
+echo "Ensuring iptables rules are reloaded on boot..."
+if ! grep -q 'iptables-restore' /etc/rc.local; then
+    sudo sed -i '$i iptables-restore < /etc/iptables/rules.v4' /etc/rc.local
+fi
+
+# Success message
+echo "Setup completed successfully. IPs and CIDR blocks from $WHITELIST_FILE have been added to the whitelist. Default INPUT policy is now DROP. The configurations will persist across reboots."

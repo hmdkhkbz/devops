@@ -12,6 +12,7 @@ Ansible-Roles:
 - Etcd-Backup
 - ArgoCD
 - Wireguard
+- Iptables ipset
 
 # Monitoring & Logging
 

@@ -1,0 +1,354 @@
+- name: Retrieve primary interface from default route
+  ansible.builtin.shell: "ip route show default | awk '{print $5}'"
+  register: public_interface
+  failed_when: public_interface.stdout == ''
+
+- name: Retrieve only the public network CIDR for the public interface
+  ansible.builtin.shell: "ip route show dev {{ public_interface.stdout.strip() }} scope link | awk '{print $1}' | head -n 1"
+  register: public_network_cidr
+
+- name: Debug public network CIDR
+  debug:
+    msg: "Public Network CIDR: {{ public_network_cidr.stdout.strip() }}"
+
+- name: Retrieve all network routes
+  ansible.builtin.shell: "ip route | awk '/proto kernel scope link/ {print $1, $3}'"
+  register: all_routes
+
+- name: Debug route information
+  debug:
+    var: all_routes.stdout_lines
+
+- name: Show all IPv4 addresses
+  debug:
+    var: ansible_facts['all_ipv4_addresses']
+
+- name: Set private_ip to the first non-primary, non-wireguard
+  set_fact:
+    private_network: "{{ item.split(' ')[0] }}"
+  loop: "{{ all_routes.stdout_lines }}"
+  when:
+    - item.split(' ')[0] != public_network_cidr.stdout.strip()
+    - wireguard_network not in item
+
+- name: Display private_network
+  debug:
+    var: private_network
+
+- name: Retrieve the interface associated with private_network
+  ansible.builtin.shell: "ip route | grep '^{{ private_network }} ' | awk '{print $3}'"
+  register: private_eth
+
+- name: Set private_eth to the interface name of private_ip
+  set_fact:
+    private_eth: "{{ private_eth.stdout.strip() }}"
+
+- name: Display private_eth
+  debug:
+    var: private_eth
+
+- name: Capture IP address of the private Ethernet interface
+  shell: |
+    ip_a_output=$(ip a | grep "{{ private_eth }}")
+    ip_address=$(echo "$ip_a_output" | grep -oP '(?<=inet\s)\d+\.\d+\.\d+\.\d+')
+    echo "$ip_address"
+  register: ip_result
+  failed_when: ip_result.stdout == ""
+
+- name: Debug IP result
+  debug:
+    msg: "The IP address is: {{ ip_result.stdout }}"
+
+- name: Set private_ip
+  set_fact:
+    private_ip: "{{ ip_result.stdout }}"
+  when: ip_result.stdout != ""
+
+- name: Show private_ip
+  debug:
+    msg: "The private IP address is: {{ private_ip }}"
+
+- name: Install WireGuard
+  apt:
+    name: wireguard
+    state: present
+  become: true
+
+- name: Install required packages for key generation
+  apt:
+    name: [ "qrencode", "resolvconf" ]
+    state: present
+
+- name: Generate server private key
+  command: "wg genkey"
+  register: wireguard_private_key
+  changed_when: False
+
+- name: Ensure /etc/wireguard directory exists
+  file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    mode: '0755'
+
+- name: Save server private key to file
+  copy:
+    content: "{{ wireguard_private_key.stdout }}"
+    dest: /etc/wireguard/privatekey
+    owner: root
+    mode: '0600'
+
+- name: Generate server public key
+  shell: "echo {{ wireguard_private_key.stdout }} | wg pubkey"
+  register: wireguard_public_key
+  changed_when: False
+
+- name: Save server public key to file
+  copy:
+    content: "{{ wireguard_public_key.stdout }}"
+    dest: /etc/wireguard/publickey
+    owner: root
+    mode: '0644'
+
+- name: Set server public key as a fact
+  set_fact:
+    wireguard_server_public_key: "{{ wireguard_public_key.stdout }}"
+
+- name: Generate client private and public keys for each client
+  shell: |
+    client_private_key=$(wg genkey)
+    client_public_key=$(echo $client_private_key | wg pubkey)
+    echo "${client_private_key}:${client_public_key}"
+  register: client_keys
+  changed_when: False
+  loop: "{{ wireguard_peers }}"
+  loop_control:
+    loop_var: item
+
+- name: Debug generated client keys
+  debug:
+    var: client_keys
+
+- name: Set client private and public keys as facts if keys were generated
+  set_fact:
+    "client_private_key_{{ item.item.name }}": "{{ item.stdout.split(':')[0] }}"
+    "client_public_key_{{ item.item.name }}": "{{ item.stdout.split(':')[1] }}"
+  loop: "{{ client_keys.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.stdout is defined
+
+- name: Debug each client public key after set_fact
+  debug:
+    msg: "Client {{ item.name }} public key: {{ hostvars[inventory_hostname]['client_public_key_' + item.name] | default('NOT SET') }}"
+  loop: "{{ wireguard_peers }}"
+  loop_control:
+    loop_var: item
+
+- name: Create client configuration directory if not exists
+  file:
+    path: "/etc/wireguard/clients"
+    state: directory
+    mode: '0755'
+
+- name: Copy WireGuard server configuration template
+  template:
+    src: wireguard_config.j2
+    dest: "/etc/wireguard/{{ wireguard_interface }}.conf"
+  notify: Restart WireGuard service
+
+- name: Generate client configuration file
+  template:
+    src: client_config.j2
+    dest: "/etc/wireguard/clients/{{ wireguard_peers[0].name }}.conf"
+    mode: '0600'
+  vars:
+    client_private_key: "{{ hostvars[inventory_hostname]['client_private_key_' + wireguard_peers[0].name] }}"
+    server_public_key: "{{ hostvars[inventory_hostname]['wireguard_server_public_key'] }}"
+    client_allowed_ips: "{{ wireguard_peers[0].allowed_ips }}"
+    wireguard_client: "{{ wireguard_peers[0].address }}"
+
+- name: Enable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: yes
+
+- name: Start and enable WireGuard service
+  systemd:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: started
+    enabled: true
+
+- name: Start and enable WireGuard service
+  systemd:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: started
+    enabled: true
+
+- name: Wait for WireGuard service to be up
+  systemd:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: started
+  register: wireguard_service_status
+  until: wireguard_service_status is success
+  retries: 5
+  delay: 10
+  failed_when: wireguard_service_status is not success
+
+- name: Allow WireGuard VPN traffic through firewall
+  ufw:
+    rule: allow
+    port: "{{ wireguard_port }}"
+    proto: udp
+
+- name: Ensure iptables is installed
+  ansible.builtin.package:
+    name: iptables
+    state: present
+
+- name: Check if firewalld is installed
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+  register: firewalld_installed
+  failed_when: false
+
+- name: Ensure iptables-persistent is installed (for Debian/Ubuntu)
+  ansible.builtin.package:
+    name: iptables-persistent
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Create /etc/iptables directory if it doesn’t exist
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    mode: '0755'
+
+- name: Start and enable iptables service if available
+  ansible.builtin.service:
+    name: iptables
+    state: started
+    enabled: yes
+  when: firewalld_installed.changed == false  # Only attempt if firewalld is not installed
+  ignore_errors: yes
+
+- name: Ensure iptables rules are available
+  ansible.builtin.shell: "iptables -L"
+  register: iptables_status
+  failed_when: iptables_status.rc != 0
+  changed_when: false
+
+- name: Debug iptables status
+  debug:
+    msg: "iptables is installed and operational."
+  when: iptables_status.rc == 0
+
+- name: Add iptables rule for FORWARD chain for WireGuard to extra interface
+  iptables:
+    chain: FORWARD
+    in_interface: "{{ wireguard_interface }}"
+    out_interface: "{{ private_eth }}"
+    jump: ACCEPT
+    state: present
+
+- name: Add iptables rule for FORWARD chain for extra interface to WireGuard
+  iptables:
+    chain: FORWARD
+    in_interface: "{{ private_eth }}"
+    out_interface: "{{ wireguard_interface }}"
+    jump: ACCEPT
+    state: present
+
+- name: Add iptables rule for POSTROUTING chain (nat table)
+  iptables:
+    chain: POSTROUTING
+    table: nat
+    out_interface: "{{ private_eth }}"
+    jump: MASQUERADE
+    state: present
+
+- name: Pause to allow iptables rules to be applied
+  pause:
+    seconds: 5
+
+- name: Make iptables rules persistent
+  template:
+    src: iptables.j2
+    dest: /etc/iptables/rules.v4
+
+- name: Save iptables rules to /etc/iptables/rules.v4
+  ansible.builtin.shell: "iptables-save > /etc/iptables/rules.v4"
+  when: ansible_os_family in ["Debian", "RedHat"]
+
+- name: Make iptables rules persistent (for systems with iptables-persistent or netfilter-persistent)
+  ansible.builtin.service:
+    name: netfilter-persistent
+    state: restarted
+  when: ansible_os_family == "Debian"
+  ignore_errors: yes
+
+- name: Make iptables rules persistent (for systems without iptables-persistent)
+  ansible.builtin.shell: "iptables-save > /etc/iptables/rules.v4"
+  when: ansible_os_family == "RedHat"
+  ignore_errors: yes
+
+- name: Gather systemd service facts
+  ansible.builtin.systemd:
+    name: "wg-quick@{{ wireguard_interface }}"
+  register: wireguard_service_status
+  failed_when: false
+  changed_when: false
+
+- name: Restart WireGuard service (systemd)
+  systemd:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: restarted
+  when: wireguard_service_status is defined and wireguard_service_status.status is defined
+
+- name: Restart WireGuard service (service)
+  service:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: restarted
+  when: wireguard_service_status is not defined or wireguard_service_status.status is not defined
+
+- name: Stop iptables service
+  service:
+    name: iptables
+    state: stopped
+  become: true
+
+- name: Start iptables service
+  service:
+    name: iptables
+    state: started
+  become: true
+
+- name: Ensure iptables service is enabled and started
+  service:
+    name: iptables
+    state: started
+    enabled: true
+  become: true
+  register: iptables_status
+
+- name: Debug iptables service status
+  debug:
+    msg: "iptables service is running"
+  when: iptables_status.state == "started"
+
+
+- name: Delete existing route
+  ansible.builtin.command:
+    cmd: "ip route del {{ private_network }}"
+
+- name: Add new route
+  ansible.builtin.shell: |
+    ip route add {{ private_network }} via {{ private_ip }} dev {{ private_eth }}
+  become: true
+
+- name: Print Wireguard Client Config message
+  ansible.builtin.debug:
+    msg: "Your needed Wireguard client configuration is stored in the /etc/wireguard/clients directory."

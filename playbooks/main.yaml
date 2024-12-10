@@ -160,3 +160,11 @@
     - node-exporter
   tags: 
     - node-exporter
+
+- name: deploy wireguard
+  hosts: haproxy
+  become: true
+  roles:
+    - wireguard
+  tags:
+    - wireguard

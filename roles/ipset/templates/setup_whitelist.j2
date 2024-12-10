@@ -1,7 +1,6 @@
 #!/bin/bash
 
 IPSET_NAME="my_whitelist"
-WHITELIST_FILE="/root/whitelist.txt"
 WHITELIST_Backup="/root/my_whitelist.txt"
 
 if ! command -v ipset &> /dev/null; then
@@ -15,7 +14,6 @@ fi
 if ! sudo ipset list "$IPSET_NAME" &> /dev/null; then
     ipset restore < $WHITELIST_Backup
 
-    sudo ipset create "$IPSET_NAME" hash:net
 else
     echo "IP set $IPSET_NAME already exists."
 fi

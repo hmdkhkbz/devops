@@ -2,6 +2,7 @@
 
 IPSET_NAME="my_whitelist"
 WHITELIST_FILE="/root/whitelist.txt"
+WHITELIST_Backup="/root/my_whitelist.txt"
 
 if ! command -v ipset &> /dev/null; then
     echo "ipset not found, installing..."
@@ -12,29 +13,11 @@ fi
 
 # Create the IP set if it doesn't exist
 if ! sudo ipset list "$IPSET_NAME" &> /dev/null; then
-    echo "Creating IP set $IPSET_NAME..."
+    ipset restore < $WHITELIST_Backup
+
     sudo ipset create "$IPSET_NAME" hash:net
 else
     echo "IP set $IPSET_NAME already exists."
-fi
-
-# Add IPs and CIDR blocks from whitelist.txt to the IP set
-if [ -f "$WHITELIST_FILE" ]; then
-    echo "Adding IPs and CIDR blocks from $WHITELIST_FILE to the IP set..."
-    while IFS= read -r ip; do
-        # Remove leading/trailing spaces and ignore empty lines
-        ip=$(echo "$ip" | xargs)
-        if [[ -n "$ip" ]]; then
-            if sudo ipset add "$IPSET_NAME" "$ip" 2>/dev/null; then
-                echo "Successfully added $ip to the whitelist."
-            else
-                echo "Failed to add $ip to the whitelist."
-            fi
-        fi
-    done < "$WHITELIST_FILE"
-else
-    echo "$WHITELIST_FILE not found. Please create the file with IPs/CIDR blocks."
-    exit 1
 fi
 
 # Create iptables rule to allow traffic from IP set

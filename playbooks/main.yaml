@@ -168,3 +168,11 @@
     - wireguard
   tags:
     - wireguard
+
+- name: deploy ipset rules
+  hosts: master-3
+  become: true
+  roles:
+    - ipset
+  tags:
+    - ipset

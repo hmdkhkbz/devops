@@ -14,5 +14,15 @@
     owner: root
     group: root
 
+- name: Install dos2unix if not already installed
+  apt:
+    name: dos2unix
+    state: present
+    update_cache: yes
+
+- name: Convert setup_whitelist.sh to Unix line endings
+  shell: "dos2unix /root/setup_whitelist.sh"
+  when: ansible_facts['distribution'] == 'Ubuntu' or ansible_facts['distribution'] == 'Debian'
+
 - name: Execute the setup_whitelist.sh script
   shell: "sudo bash /root/setup_whitelist.sh"

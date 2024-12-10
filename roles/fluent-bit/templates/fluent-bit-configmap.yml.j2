@@ -46,17 +46,14 @@ data:
         K8S-Logging.Exclude On
 
     [OUTPUT]
-        Name es
-        Match kube.*
-        Host 5.34.202.235
-        Trace_Error On
-        Trace_Output On
-        Retry_Limit False
+        Name              es
+        Match             **
+        Host              ## Example: 5.34.202.235
+        Port              9200
+        HTTP_User         elastic
+        HTTP_Passwd       ## elastic user passwd
+        Index             my-index
+        Trace_Error       On
+        Trace_Output      On
 
-    [OUTPUT]
-        Name es
-        Match host.*
-        Host 5.34.202.235
-        Trace_Error  On
-        Trace_Output On
-        Retry_Limit False
+

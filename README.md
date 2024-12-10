@@ -11,6 +11,7 @@ Ansible-Roles:
 - Node Exporter
 - Etcd-Backup
 - ArgoCD
+- Wireguard
 
 # Monitoring & Logging
 

@@ -1,0 +1,10 @@
+wireguard_port: 51820
+wireguard_srv: 172.16.18.1/24
+wireguard_server_ip: 172.16.18.1
+wireguard_interface: wg0
+wireguard_network: 172.16.18.0/24
+wireguard_peers:
+  - name: "peer1"
+    address: "172.16.18.2/32"
+    allowed_ips: "172.16.18.2/32"
+wireguard_client: 172.16.18.2/32

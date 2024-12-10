@@ -1,0 +1,10 @@
+[Interface]
+PrivateKey = {{ wireguard_private_key.stdout }}
+Address = {{ wireguard_srv }}
+ListenPort = {{ wireguard_port }}
+
+{% for peer in wireguard_peers %}
+[Peer]
+PublicKey = {{ hostvars[inventory_hostname].get('client_public_key_' + peer.name, 'MISSING_PUBLIC_KEY') }}
+AllowedIPs = {{ peer.allowed_ips }}
+{% endfor %}

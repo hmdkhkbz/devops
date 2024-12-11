@@ -170,7 +170,7 @@
     - wireguard
 
 - name: deploy ipset rules
-  hosts: master-3
+  hosts: k8s_cluster
   become: true
   roles:
     - ipset

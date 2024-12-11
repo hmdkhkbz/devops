@@ -25,6 +25,7 @@ sudo iptables -A INPUT -m set --match-set "$IPSET_NAME" src -j ACCEPT
 # Set default INPUT policy to DROP
 echo "Setting default INPUT policy to DROP..."
 sudo iptables -P INPUT DROP
+iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 # Save iptables and ipset configurations
 echo "Saving iptables and ipset configurations..."

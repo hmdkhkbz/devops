@@ -2,6 +2,14 @@
   stat:
     path: "{{ node_exporter_bin }}"
   register: __check_node_exporter_present
+
+- name: Create textfile_collector directory
+  file:
+    path: /var/lib/node_exporter/textfile_collector
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
 - name: create node exporter user
   user:
     name: "{{ node_exporter_user }}"

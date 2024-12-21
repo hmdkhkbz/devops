@@ -1,3 +1,28 @@
 #!/bin/bash
 
-ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db  && s3cmd put /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db s3://hmd-etcd/etcd-snapshot-$(hostname)-$(date +\%Y-\%m-\%dT\%H:\%M).db >> /var/log/etcd_backup.log 2>&1
+# Define paths for metrics and logs
+METRIC_FILE="/tmp/etcd_backup_status.prom"
+LOG_FILE="/var/log/etcd_backup.log"
+
+# Run the backup command
+ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
+    --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+    --cert=/etc/kubernetes/pki/etcd/server.crt \
+    --key=/etc/kubernetes/pki/etcd/server.key \
+    snapshot save /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +%Y-%m-%dT%H:%M).db && \
+    s3cmd put /data/etcd-backup/etcd-snapshot-$(hostname)-$(date +%Y-%m-%dT%H:%M).db \
+    s3://hmd-etcd/etcd-snapshot-$(hostname)-$(date +%Y-%m-%dT%H:%M).db >> $LOG_FILE 2>&1
+
+# Check the command's exit status
+if [ $? -eq 0 ]; then
+    echo "# HELP etcd_backup_success Indicates if the etcd backup was successful (1: success, 0: failure)" > $METRIC_FILE
+    echo "# TYPE etcd_backup_success gauge" >> $METRIC_FILE
+    echo "etcd_backup_success 1" >> $METRIC_FILE
+else
+    echo "# HELP etcd_backup_success Indicates if the etcd backup was successful (1: success, 0: failure)" > $METRIC_FILE
+    echo "# TYPE etcd_backup_success gauge" >> $METRIC_FILE
+    echo "etcd_backup_success 0" >> $METRIC_FILE
+fi
+
+# Move the metric file to the Node Exporter's textfile directory
+mv $METRIC_FILE /var/lib/node_exporter/textfile_collector/

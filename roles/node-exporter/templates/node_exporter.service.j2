@@ -5,6 +5,6 @@ After=network-online.target
 User={{ node_exporter_user }}
 Group={{ node_exporter_user }}
 Type=simple
-ExecStart={{ node_exporter_bin }}
+ExecStart={{ node_exporter_bin --collector.textfile.directory=/var/lib/node_exporter/textfile_collector }}
 [Install]
 WantedBy=multi-user.target
